@@ -1,0 +1,5 @@
+[submodule "Assets/rrbot_description"]
+	path = Assets/rrbot_description
+	url = git@github.com:pneumotrol/rrbot_description.git
+	ignore = dirty
+
