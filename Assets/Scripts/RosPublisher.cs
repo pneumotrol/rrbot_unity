@@ -1,11 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using Unity.Robotics.ROSTCPConnector;
-using JointStateMsg = RosMessageTypes.Sensor.JointStateMsg;
-using Unity.Robotics.UrdfImporter;
-using UnityEditor;
 using System;
+using Unity.Robotics.ROSTCPConnector;
+using UnityEngine;
+using JointStateMsg = RosMessageTypes.Sensor.JointStateMsg;
 
 public class RosPublisher : MonoBehaviour
 {
@@ -13,7 +9,7 @@ public class RosPublisher : MonoBehaviour
     GameObject robot;
 
     public string topicName = "/joint_states";
-    public float publishMessageFrequency = 0.5f;
+    public float publishMessagePeriod = 0.5f;
 
     ROSConnection ros;
     float timeElapsed = 0.0f;
@@ -47,13 +43,13 @@ public class RosPublisher : MonoBehaviour
         ros.Publish(topicName, joint_states);
     }
 
-    // Update is called once per frame
-    private void Update()
+    void Update()
     {
+        // publish messages once per publishMessagePeriod
         timeElapsed += Time.deltaTime;
-
-        if (timeElapsed > publishMessageFrequency)
+        if (timeElapsed > publishMessagePeriod)
         {
+            // publish current joint_states
             for (int i = 0; i < bodies.Length; i++)
             {
                 joint_states.name[i] = bodies[i].name;
@@ -64,6 +60,7 @@ public class RosPublisher : MonoBehaviour
 
             ros.Publish(topicName, joint_states);
 
+            // reset time
             timeElapsed = 0.0f;
         }
     }
