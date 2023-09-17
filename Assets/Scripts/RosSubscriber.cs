@@ -14,25 +14,40 @@ public class RosSubscriber : MonoBehaviour
     void Start()
     {
         // start ROS connection
-        ROSConnection.GetOrCreateInstance().Subscribe<Float64MultiArrayMsg>(topicName, Callback);
+        ROSConnection.GetOrCreateInstance().Subscribe<Float64MultiArrayMsg>(topicName, SubscribeCommand);
 
         // get ArticulationBody from GameObject
         bodies = robot.GetComponentsInChildren<ArticulationBody>(true);
     }
 
 
-    void Callback(Float64MultiArrayMsg commands)
+    void SubscribeCommand(Float64MultiArrayMsg commands)
     {
         // TODO
-        // - add torque to body by messages
         // - create control mode (torque, speed, position)
-        if (bodies.Length == commands.data.Length)
+        if (bodies.Length != commands.data.Length)
         {
-            Debug.Log("Equal");
+            Debug.Log("Expected " + topicName + " length: " + bodies.Length + ", but received: " + commands.data.Length);
+            return;
         }
-        else
+
+        // apply force/torque which from /commands message to Unity model joints
+        for (int i = 0; i < bodies.Length; i++)
         {
-            Debug.Log("Not equal" + commands.data.Length);
+            switch (bodies[i].jointType)
+            {
+                case ArticulationJointType.PrismaticJoint:
+                case ArticulationJointType.RevoluteJoint:
+                    bodies[i].jointForce = new ArticulationReducedSpace((float)commands.data[i]);
+
+                    break;
+
+                case ArticulationJointType.FixedJoint:
+                case ArticulationJointType.SphericalJoint:
+                default:
+
+                    break;
+            }
         }
     }
 }

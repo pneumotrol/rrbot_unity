@@ -364,7 +364,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   robot: {fileID: 1468665412}
   topicName: joint_states
-  publishMessageFrequency: 0.5
 --- !u!1 &156474392
 GameObject:
   m_ObjectHideFlags: 8
@@ -1291,7 +1290,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   robot: {fileID: 1468665412}
-  topicName: /aa
+  topicName: /commands
 --- !u!4 &613397925
 Transform:
   m_ObjectHideFlags: 0
