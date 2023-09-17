@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Unity.Robotics.ROSTCPConnector;
+using Unity.Robotics.UrdfImporter;
 using UnityEngine;
 using JointStateMsg = RosMessageTypes.Sensor.JointStateMsg;
 
@@ -12,7 +14,7 @@ public class RosPublisher : MonoBehaviour
 
     bool hasInit = false;
     ROSConnection ros;
-    ArticulationBody[] bodies;
+    UrdfJoint[] joints;
     JointStateMsg joint_states;
 
     void Start()
@@ -21,20 +23,20 @@ public class RosPublisher : MonoBehaviour
         ros = ROSConnection.GetOrCreateInstance();
         ros.RegisterPublisher<JointStateMsg>(topicName);
 
-        // get ArticulationBody from GameObject
-        bodies = robot.GetComponentsInChildren<ArticulationBody>(true);
+        // get revolute or prismatic joint as UrdfJoint from GameObject
+        List<UrdfJoint> joints_list = new();
+        joints_list.AddRange(robot.GetComponentsInChildren<UrdfJointRevolute>(true));
+        joints_list.AddRange(robot.GetComponentsInChildren<UrdfJointPrismatic>(true));
+        joints = joints_list.ToArray();
 
         // initialize /joint_states message
         joint_states = new JointStateMsg();
-        Array.Resize(ref joint_states.name, bodies.Length);
-        Array.Resize(ref joint_states.position, bodies.Length);
-        Array.Resize(ref joint_states.velocity, bodies.Length);
-        Array.Resize(ref joint_states.effort, bodies.Length);
+        Array.Resize(ref joint_states.name, joints.Length);
+        Array.Resize(ref joint_states.position, joints.Length);
+        Array.Resize(ref joint_states.velocity, joints.Length);
+        Array.Resize(ref joint_states.effort, joints.Length);
 
         hasInit = true;
-
-        // publish current /joint_states message
-        PublishState();
     }
 
     void FixedUpdate()
@@ -52,29 +54,12 @@ public class RosPublisher : MonoBehaviour
         }
 
         // substitute current phisical states calculated by Unity into /joint_states message
-        for (int i = 0; i < bodies.Length; i++)
+        for (int i = 0; i < joints.Length; i++)
         {
-            joint_states.name[i] = bodies[i].name;
-
-            switch (bodies[i].jointType)
-            {
-                case ArticulationJointType.PrismaticJoint:
-                case ArticulationJointType.RevoluteJoint:
-                    joint_states.position[i] = bodies[i].jointPosition[0];
-                    joint_states.velocity[i] = bodies[i].jointVelocity[0];
-                    joint_states.effort[i] = bodies[i].jointForce[0];
-
-                    break;
-
-                case ArticulationJointType.FixedJoint:
-                case ArticulationJointType.SphericalJoint:
-                default:
-                    joint_states.position[i] = 0.0;
-                    joint_states.velocity[i] = 0.0;
-                    joint_states.effort[i] = 0.0;
-
-                    break;
-            }
+            joint_states.name[i] = joints[i].name;
+            joint_states.position[i] = joints[i].GetPosition();
+            joint_states.velocity[i] = joints[i].GetVelocity();
+            joint_states.effort[i] = joints[i].GetEffort();
         }
 
         ros.Publish(topicName, joint_states);
