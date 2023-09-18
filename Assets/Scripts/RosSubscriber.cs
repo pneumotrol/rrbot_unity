@@ -1,6 +1,8 @@
 using UnityEngine;
 using Unity.Robotics.ROSTCPConnector;
 using Float64MultiArrayMsg = RosMessageTypes.Std.Float64MultiArrayMsg;
+using System.Collections.Generic;
+using Unity.Robotics.UrdfImporter;
 
 public class RosSubscriber : MonoBehaviour
 {
@@ -9,15 +11,18 @@ public class RosSubscriber : MonoBehaviour
 
     public string topicName = "/commands";
 
-    ArticulationBody[] bodies;
+    UrdfJoint[] joints;
 
     void Start()
     {
         // start ROS connection
         ROSConnection.GetOrCreateInstance().Subscribe<Float64MultiArrayMsg>(topicName, SubscribeCommand);
 
-        // get ArticulationBody from GameObject
-        bodies = robot.GetComponentsInChildren<ArticulationBody>(true);
+        // get revolute or prismatic joint as UrdfJoint from GameObject
+        List<UrdfJoint> joints_list = new();
+        joints_list.AddRange(robot.GetComponentsInChildren<UrdfJointRevolute>(true));
+        joints_list.AddRange(robot.GetComponentsInChildren<UrdfJointPrismatic>(true));
+        joints = joints_list.ToArray();
     }
 
 
@@ -25,29 +30,16 @@ public class RosSubscriber : MonoBehaviour
     {
         // TODO
         // - create control mode (torque, speed, position)
-        if (bodies.Length != commands.data.Length)
+        if (joints.Length != commands.data.Length)
         {
-            Debug.Log("Expected " + topicName + " length: " + bodies.Length + ", but received: " + commands.data.Length);
+            Debug.Log("Expected " + topicName + " length: " + joints.Length + ", but received: " + commands.data.Length);
             return;
         }
 
         // apply force/torque which from /commands message to Unity model joints
-        for (int i = 0; i < bodies.Length; i++)
+        for (int i = 0; i < joints.Length; i++)
         {
-            switch (bodies[i].jointType)
-            {
-                case ArticulationJointType.PrismaticJoint:
-                case ArticulationJointType.RevoluteJoint:
-                    bodies[i].jointForce = new ArticulationReducedSpace((float)commands.data[i]);
-
-                    break;
-
-                case ArticulationJointType.FixedJoint:
-                case ArticulationJointType.SphericalJoint:
-                default:
-
-                    break;
-            }
+            joints[i].GetComponent<ArticulationBody>().jointForce = new ArticulationReducedSpace((float)commands.data[i]);
         }
     }
 }

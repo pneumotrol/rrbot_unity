@@ -56,7 +56,7 @@ public class RosPublisher : MonoBehaviour
         // substitute current phisical states calculated by Unity into /joint_states message
         for (int i = 0; i < joints.Length; i++)
         {
-            joint_states.name[i] = joints[i].name;
+            joint_states.name[i] = joints[i].jointName;
             joint_states.position[i] = joints[i].GetPosition();
             joint_states.velocity[i] = joints[i].GetVelocity();
             joint_states.effort[i] = joints[i].GetEffort();
